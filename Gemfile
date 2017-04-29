@@ -24,7 +24,7 @@ gem 'jbuilder', '~> 2.0'
 gem 'sdoc', '~> 0.4.0', group: :doc
 
 gem 'hashie'
-gem 'facebook_ads', '~> 0.1'
+gem 'facebook_ads', '~> 0.1', github: 'yazinsai/facebook-ruby-ads-sdk'
 gem 'facebook-messenger'
 
 # Use ActiveModel has_secure_password

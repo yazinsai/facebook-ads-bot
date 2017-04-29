@@ -25,5 +25,9 @@ module Workspace
     
     # Load Facebook configuration
     config.fb = Hashie::Mash.new(config_for(:facebook))
+    
+    # Auto-load the Facebook bot and its subdirectories
+    config.paths.add File.join('app', 'bot'), glob: File.join('**', '*.rb')
+    config.autoload_paths += Dir[Rails.root.join('app', 'bot', '*')]
   end
 end
