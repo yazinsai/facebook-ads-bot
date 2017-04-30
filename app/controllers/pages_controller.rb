@@ -3,11 +3,8 @@ class PagesController < ApplicationController
         render plain: facebook_init
     end
     
-    private
-    
     def facebook_init
         fb_impressions
-        # messenger stuff in app/bot/
     end
     
     private
