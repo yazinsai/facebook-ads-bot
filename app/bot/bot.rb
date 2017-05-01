@@ -103,10 +103,13 @@ class AdBot
     
     case state
     when :link_asked
-      @link = postback.payload
+      ad_config = Rails.configuration.fb.ad
+      @link = (postback.payload == "LINK-WEBSITE" ? 
+                ad_config.website : ad_config.app)
       ask_for_image
     when :budget_asked
-      @budget = postback.payload
+      match = postback.payload.match(/^BUDGET-(\d+)$/i)
+      @budget = match.captures.first.to_i * 100 # BUDGET-50 -> 5000 (in cents)
       ask_for_confirmation
     when :confirmation_asked
       if postback.payload == "CONFIRM-YES"
@@ -179,7 +182,7 @@ class AdBot
               buttons: [{
                 type: "postback",
                 title: "$50",
-                payload: "BUDGET-SMALL"
+                payload: "BUDGET-50"
               }]
             },
             {
@@ -189,7 +192,7 @@ class AdBot
               buttons: [{
                 type: "postback",
                 title: "$500",
-                payload: "BUDGET-MEDIUM"
+                payload: "BUDGET-500"
               }]
             },
             {
@@ -199,7 +202,7 @@ class AdBot
               buttons: [{
                 type: "postback",
                 title: "$50,000",
-                payload: "BUDGET-LARGE"
+                payload: "BUDGET-50000"
               }]
             }
           ]
@@ -217,7 +220,7 @@ class AdBot
     @last_message.reply(text: "✅  Title: #{@title}")
     @last_message.reply(text: "✅  Message: #{@message}")
     @last_message.reply(text: "✅  Link: #{@link}")
-    @last_message.reply(text: "✅  Budget: #{@budget}")
+    @last_message.reply(text: "✅  Budget: $#{@budget/100}")
     wait 2
     @last_message.reply(text: "Oh, and here's your lovely image:")
     @last_message.reply(
@@ -225,7 +228,7 @@ class AdBot
         type: 'image',
         payload: { url: @image }
       })
-    wait
+    wait 2
     @last_message.reply(
       attachment: {
         type: 'template',
@@ -247,20 +250,28 @@ class AdBot
   # Uses the class instance variables (title, message, link, image, budget) to create
   # the ad
   def create_ad
-    thread = Thread.new { ctrl = PagesController.new; ctrl.facebook_init }
-    @last_message.reply(text: "Ok, I'm going to talk to my bot friend at Facebook")
-    sleep(3)
+    created_ad = nil
+    thread = Thread.new do
+      ctrl = PagesController.new
+      created_ad = ctrl.create_ad(title: @title, message: @message, 
+                      link: @link, image: @image, budget: @budget)
+    end
+    
+    @last_message.reply(text: "Ok, I'm going to talk to Facebook now ⏳")
+    wait 5
     @last_message.reply(text: "While we're waiting, let me find a cat picture for you")
-    sleep(2)
+    wait 3
     @last_message.reply(text: "Ah, here's one!")
     @last_message.reply(
       attachment: {
         type: 'image',
         payload: { url: "http://www.top13.net/wp-content/uploads/2015/10/perfectly-timed-funny-cat-pictures-5.jpg" }
       })
+    wait 3
     @last_message.reply(text: "Almost done now")
     thread.join # make sure it's done
-    @last_message.reply(text: "Ah, done! Thanks for dropping by. See you later!")
+    @last_message.reply(text: "Ah, all done! You're now the proud owner of ad ##{created_ad}")
+    @last_message.reply(text: "Thanks for dropping by. See you later!")
   end
 end
 

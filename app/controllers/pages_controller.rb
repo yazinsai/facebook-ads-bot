@@ -1,10 +1,79 @@
 class PagesController < ApplicationController
+    # /
     def main
-        render plain: facebook_init
+        render plain: fb_impressions
     end
     
-    def facebook_init
-        fb_impressions
+    # /ad/
+    def ad
+        render plain: "No ad here :/"
+    end
+    
+    # Called by app/bot/bot.rb
+    def create_ad(title: "My Title", message: "My Message", link: "http://a.b/",
+                    image: "http://images.com/image.png", budget: "5000")
+        # Log
+        Rails.logger.debug "create_ad(image=#{image})"
+        
+        # Pull configuration
+        config = Rails.configuration.fb.marketing
+        
+        # Ok, create the ad
+        FacebookAds.access_token = config.access_token
+        FacebookAds.base_uri = 'https://graph.facebook.com/v2.9'
+        FacebookAds.logger = logger
+        
+        # Find our account
+        account = FacebookAds::AdAccount.find(config.account_id)
+        
+        # 1. Create a campaign
+        campaign = account.create_ad_campaign(
+            name: title,
+            objective: 'BRAND_AWARENESS',
+            status: 'PAUSED')
+        
+        # 2. Add an image
+        ad_images = account.create_ad_images([image])
+        
+        # 3. Create an Ad Creative
+        ad_creative = account.create_ad_creative({
+            name: title,
+            page_id: config.page_id,
+            link: link,
+            message: message,
+            assets: [
+                { hash: ad_images.first.hash, title: message },
+                { hash: ad_images.first.hash, title: message }],
+            call_to_action_type: 'SHOP_NOW',
+            multi_share_optimized: true,
+            multi_share_end_card: false
+            }, carousel: true)
+        
+        # 4. Create an Ad Set for a Campaign
+        # - a. First, create your targeting
+        targeting = FacebookAds::AdTargeting.new
+        targeting.genders = [FacebookAds::AdTargeting::WOMEN]
+        targeting.age_min = 29
+        targeting.age_max = 65
+        targeting.countries = ['GB']
+        
+        # - b. Create the ad set
+        ad_set = campaign.create_ad_set(
+            name: title,
+            targeting: targeting,
+            promoted_object: {
+                page_id: config.page_id },
+            optimization_goal: 'BRAND_AWARENESS',
+            daily_budget: budget, # in cents
+            billing_event: 'IMPRESSIONS',
+            status: 'PAUSED')
+        
+        # 5. Create the Ad (finally!)
+        ad = ad_set.create_ad(
+            name: title, creative_id: ad_creative.id, status: 'PAUSED')
+        
+        # Return the ad id
+        ad.id
     end
     
     private
@@ -89,7 +158,6 @@ class PagesController < ApplicationController
     
     def fb_impressions
         config = Rails.configuration.fb.marketing
-        
         FacebookAds.access_token = config.access_token
         FacebookAds.base_uri = 'https://graph.facebook.com/v2.9'
         FacebookAds.logger = logger

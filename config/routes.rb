@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root 'pages#main'
+  get 'ad/' => 'pages#ad'
   mount Facebook::Messenger::Server, at: 'bot'
   
   # The priority is based upon order of creation: first created -> highest priority.
