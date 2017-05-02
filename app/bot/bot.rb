@@ -44,8 +44,14 @@ class AdBot
     Rails.configuration.fb.messenger.access_token
   end
   
+  # Read state as symbol instead of index
   def state
     @@states[@state]
+  end
+  
+  # Move to next state
+  def advance!
+    @state = (@state + 1) % @@states.length
   end
   
   # Gets called whenever we receive a typed message from the user
@@ -121,10 +127,6 @@ class AdBot
     end
     
     advance! # next state
-  end
-  
-  def advance!
-    @state = (@state + 1) % @@states.length
   end
   
   # Questions
