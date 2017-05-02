@@ -1,7 +1,8 @@
 class PagesController < ApplicationController
     # /
     def main
-        render plain: fb_impressions
+        render plain: "hi"
+        # render plain: fb_impressions
     end
     
     # /ad/

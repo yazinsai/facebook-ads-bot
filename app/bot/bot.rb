@@ -11,7 +11,7 @@ include Facebook::Messenger
 # - done
 class AdBot
   @@states = [:initial, :title_asked, :message_asked, :link_asked, :image_asked, 
-                :budget_asked, :confirmation_asked].freeze
+                :budget_asked, :confirmation_asked, :completed].freeze
   attr_reader :title, :message, :link, :image, :budget
 
   def initialize
@@ -84,7 +84,7 @@ class AdBot
     when :budget_asked   # ⚠️ exception (expecting postback)
     end
     
-    @state += 1 # advance to next state
+    advance! # advance to next state
   end
   
   # Gets called whenever we receive a callback from the user (e.g. clicked a
@@ -120,7 +120,11 @@ class AdBot
       end
     end
     
-    @state += 1
+    advance! # next state
+  end
+  
+  def advance!
+    @state = (@state + 1) % @@states.length
   end
   
   # Questions
@@ -258,16 +262,16 @@ class AdBot
     end
     
     @last_message.reply(text: "Ok, I'm going to talk to Facebook now ⏳")
-    wait 5
+    wait 7
     @last_message.reply(text: "While we're waiting, let me find a cat picture for you")
-    wait 3
+    wait 4
     @last_message.reply(text: "Ah, here's one!")
     @last_message.reply(
       attachment: {
         type: 'image',
         payload: { url: "http://www.top13.net/wp-content/uploads/2015/10/perfectly-timed-funny-cat-pictures-5.jpg" }
       })
-    wait 3
+    wait 5
     @last_message.reply(text: "Almost done now")
     thread.join # make sure it's done
     @last_message.reply(text: "Ah, all done! You're now the proud owner of ad ##{created_ad}")
